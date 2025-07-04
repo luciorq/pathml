@@ -375,11 +375,11 @@ So far, **PathML** was referenced in 40+ manuscripts:
 
 <table style="border: 0px !important;"><tr><td>This is where in the world our most enthusiastic supporters are located:
    <br/><br/>
-<img src="https://user-images.githubusercontent.com/25375373/208137141-e450aa86-8433-415a-9cc7-c4274139bdc2.png" width="500px">
+<img src="https://github.com/user-attachments/assets/18fdaf1c-5ee0-48db-b0d4-99698184c93e" width="722px">
    </td><td>   
 and this is where they work:
    <br/><br/>
-<img src="https://user-images.githubusercontent.com/25375373/208137644-f73c86d0-c5c7-4094-80d9-ea11e0edbdc5.png" width="400px">
+<img src="https://github.com/user-attachments/assets/0ce73bb5-a722-4dc8-8846-824757e45f0c" width="400px">
 </td>                                                                                                                             
 </tr>
 </table>
