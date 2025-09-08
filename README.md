@@ -352,10 +352,13 @@ If you use ``PathML`` please cite:
 
 - [**J. Rosenthal et al., "Building tools for machine learning and artificial intelligence in cancer research: best practices and a case study with the PathML toolkit for computational pathology." Molecular Cancer Research, 2022.**](https://doi.org/10.1158/1541-7786.MCR-21-0665)
 
-So far, **PathML** was referenced in 20+ manuscripts:
+So far, **PathML** was referenced in 40+ manuscripts:
 
+-   [L. Heumos et al. **Nature Medicine**, 2024](https://www.nature.com/articles/s41591-024-03214-0)
+-   [M. Omar et al. **Lancet Digital Health**, 2024](https://www.thelancet.com/journals/landig/article/PIIS2589-7500(24)00114-6/fulltext)
 -   [H. Pakula et al. **Nature Communications**, 2024](https://www.nature.com/articles/s41467-023-44210-1)
 -   [B. Ricciuti et al. **Journal of Clinical Oncology**, 2024](https://ascopubs.org/doi/full/10.1200/JCO.23.00580)
+-   [DT. Hoang et al. **Nature Cancer**, 2024](https://www.nature.com/articles/s43018-024-00793-2)
 -   [A. Song et al. **Nature Reviews Bioengineering**, 2023](https://www.nature.com/articles/s44222-023-00096-8)
 -   [I. Virshup et al. **Nature Bioengineering**, 2023](https://www.nature.com/articles/s41587-023-01733-8)
 -   [A. Karargyris et al. **Nature Machine Intelligence**, 2023](https://www.nature.com/articles/s42256-023-00652-2)
@@ -372,11 +375,11 @@ So far, **PathML** was referenced in 20+ manuscripts:
 
 <table style="border: 0px !important;"><tr><td>This is where in the world our most enthusiastic supporters are located:
    <br/><br/>
-<img src="https://user-images.githubusercontent.com/25375373/208137141-e450aa86-8433-415a-9cc7-c4274139bdc2.png" width="500px">
+<img src="https://github.com/user-attachments/assets/18fdaf1c-5ee0-48db-b0d4-99698184c93e" width="722px">
    </td><td>   
 and this is where they work:
    <br/><br/>
-<img src="https://user-images.githubusercontent.com/25375373/208137644-f73c86d0-c5c7-4094-80d9-ea11e0edbdc5.png" width="400px">
+<img src="https://github.com/user-attachments/assets/0ce73bb5-a722-4dc8-8846-824757e45f0c" width="400px">
 </td>                                                                                                                             
 </tr>
 </table>
