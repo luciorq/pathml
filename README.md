@@ -350,10 +350,11 @@ Now that you are all set with ``PathML`` installation, let's get started with so
 
 If you use ``PathML`` please cite:
 
-- [**J. Rosenthal et al., "Building tools for machine learning and artificial intelligence in cancer research: best practices and a case study with the PathML toolkit for computational pathology." Molecular Cancer Research, 2022.**](https://doi.org/10.1158/1541-7786.MCR-21-0665)
+- [**M. Omar et al., "Antibody-Based Multiplex Image Analysis: Standard Analytical Workflows and Artificial Intelligence Tools for Pathologists." Laboratory Investigation, 2025.**](https://doi.org/10.1016/j.labinv.2025.104220)
 
 So far, **PathML** was referenced in 40+ manuscripts:
 
+-   [Y. Han et al. **npj Precision Oncology**, 2025](https://www.nature.com/articles/s41698-025-01056-8)
 -   [L. Heumos et al. **Nature Medicine**, 2024](https://www.nature.com/articles/s41591-024-03214-0)
 -   [M. Omar et al. **Lancet Digital Health**, 2024](https://www.thelancet.com/journals/landig/article/PIIS2589-7500(24)00114-6/fulltext)
 -   [H. Pakula et al. **Nature Communications**, 2024](https://www.nature.com/articles/s41467-023-44210-1)
