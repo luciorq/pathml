@@ -21,7 +21,7 @@ dependencies:
     - coverage==7.3.4
     - networkx<=3.2.1
     - pip:
-        - -r requirements/requirements_torch.txt
+        - -r ../requirements/requirements_torch.txt
         - coverage<7.3
         - python-bioformats==4.0.7
         - python-javabridge==4.0.3
