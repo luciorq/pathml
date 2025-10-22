@@ -21,7 +21,7 @@ dependencies:
     - coverage==7.3.4
     - networkx<=3.2.1
     - pip:
-        - coverage==7.2.7
+        # - coverage==7.2.7
         # - setuptools==58.2.0
         # - numpy==1.23.5
         - torch==2.8.0
