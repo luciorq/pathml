@@ -72,68 +72,68 @@ jobs:
           name: coverage-other
           path: /tmp/coverage_other
 
-test-tilestitcher:
-  runs-on: ubuntu-latest
-  strategy:
-    matrix:
-      python-version: ["3.9", "3.10"]
-  timeout-minutes: 60
+  test-tilestitcher:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
+    timeout-minutes: 60
 
-  steps:
-    - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: System cleanup
-      run: |
-        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
-        sudo apt-get clean
-        sudo rm -rf /var/lib/apt/lists/*
-        df -h
+      - name: System cleanup
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Setup Micromamba
-      uses: mamba-org/setup-micromamba@v1
-      with:
-        micromamba-version: '1.5.6-0'
-        environment-name: pathml
-        environment-file: requirements/environment_test.yml
-        create-args: python=${{ matrix.python-version }}
-        init-shell: bash
+      - name: Setup Micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: '1.5.6-0'
+          environment-name: pathml
+          environment-file: requirements/environment_test.yml
+          create-args: python=${{ matrix.python-version }}
+          init-shell: bash
 
-    - name: Clean micromamba cache
-      shell: bash -l {0}
-      run: micromamba clean --all --yes
+      - name: Clean micromamba cache
+        shell: bash -l {0}
+        run: micromamba clean --all --yes
 
-    - name: Install system dependencies
-      run: sudo apt-get update && sudo apt-get install -y openslide-tools pandoc
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y openslide-tools pandoc
 
-    - name: Set default JDK 17
-      run: |
-        sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
-        java -version
+      - name: Set default JDK 17
+        run: |
+          sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
+          java -version
 
-    - name: Install Python packages
-      shell: bash -l {0}
-      run: |
-        pip install -e .
-        pip install torchvision==0.14.1
-        pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
+      - name: Install Python packages
+        shell: bash -l {0}
+        run: |
+          pip install -e .
+          pip install torchvision==0.14.1
+          pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
 
-    - name: Run tile_stitcher tests with coverage
-      shell: bash -l {0}
-      run: |
-        export COVERAGE_FILE=/tmp/.coverage_tilestitcher
-        coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py --tb=short
-        coverage xml -o /tmp/combined_coverage_tilestitcher.xml
+      - name: Run tile_stitcher tests with coverage
+        shell: bash -l {0}
+        run: |
+          export COVERAGE_FILE=/tmp/.coverage_tilestitcher
+          coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py --tb=short
+          coverage xml -o /tmp/combined_coverage_tilestitcher.xml
 
-    - name: Upload coverage artifact (tile_stitcher)
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-tilestitcher
-        path: /tmp/.coverage_tilestitcher,/tmp/combined_coverage_tilestitcher.xml
+      - name: Upload coverage artifact (tile_stitcher)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-tilestitcher
+          path: /tmp/.coverage_tilestitcher,/tmp/combined_coverage_tilestitcher.xml
 
   merge-coverage:
     runs-on: ubuntu-latest
