@@ -141,9 +141,20 @@ jobs:
   merge-coverage:
     runs-on: ubuntu-latest
     needs: [test-other, test-tilestitcher]
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install coverage
+        run: pip install coverage
 
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
@@ -157,12 +168,13 @@ jobs:
           echo "Found coverage files:"
           find ./coverage_all -name ".coverage_*"
           coverage combine $(find ./coverage_all -name ".coverage_*")
-          coverage xml -o combined_coverage_final.xml
+          coverage xml -o combined_coverage_final_${{ matrix.python-version }}.xml
 
       - name: Upload merged coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./combined_coverage_final.xml
+          files: ./combined_coverage_final_${{ matrix.python-version }}.xml
           fail_ci_if_error: true
           verbose: true
+

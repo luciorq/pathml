@@ -46,9 +46,7 @@ def test_extract_region(backend, location, size, level):
     assert region.dtype == np.uint8
 
 
-@pytest.mark.parametrize(
-    "backend", [bioformats_backend(), bioformats_backend_qptiff()]
-)
+@pytest.mark.parametrize("backend", [bioformats_backend(), bioformats_backend_qptiff()])
 @pytest.mark.parametrize("normalize", [True, False])
 def test_extract_region_bioformats_no_normalize(backend, normalize):
     reg = backend.extract_region(location=(0, 0), size=10, normalize=normalize)
@@ -99,9 +97,9 @@ def test_extract_region_levels_openslide():
         """
         blue_channel = region[:, :, 2]
         blue_fraction = np.mean(blue_channel > 250)
-        assert blue_fraction >= threshold, (
-            f"Only {blue_fraction * 100:.2f}% of pixels are blue"
-        )
+        assert (
+            blue_fraction >= threshold
+        ), f"Only {blue_fraction * 100:.2f}% of pixels are blue"
 
     wsi = OpenSlideBackend("tests/testdata/small_HE_levels.tiff")
 
@@ -184,9 +182,7 @@ def test_tile_generator_with_level(backend, shape, tile_shape, pad, level):
     assert all(isinstance(tile, Tile) for tile in tiles)
 
 
-@pytest.mark.parametrize(
-    "backend", [bioformats_backend(), bioformats_backend_qptiff()]
-)
+@pytest.mark.parametrize("backend", [bioformats_backend(), bioformats_backend_qptiff()])
 @pytest.mark.parametrize("normalize", [True, False])
 def test_generate_tiles_bioformats_no_normalize(backend, normalize):
     gen = backend.generate_tiles(shape=10, normalize=normalize)
