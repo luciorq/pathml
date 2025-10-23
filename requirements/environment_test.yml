@@ -18,11 +18,11 @@ dependencies:
     - pydicom==2.4.4
     - pytest==7.4.3
     - pre-commit<=3.6.0
-    - coverage==7.3.4
+    - coverage==7.2.7
     - networkx<=3.2.1
     - pip:
         - -r ../requirements/requirements_torch.txt
-        - coverage==7.2.7
+        # - coverage==7.2.7
         - numba>=0.59
         - python-bioformats==4.0.7
         - python-javabridge==4.0.3

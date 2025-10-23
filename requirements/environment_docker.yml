@@ -18,7 +18,7 @@ dependencies:
     - coverage<7.3
     - pytest==7.4.3 
     - pre-commit<=3.6.0
-    - coverage==7.3.4
+    - coverage==7.2.7
     - networkx<=3.2.1
     - pip:
         - torch==2.6.0
