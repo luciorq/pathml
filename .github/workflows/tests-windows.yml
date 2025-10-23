@@ -111,11 +111,11 @@ jobs:
         shell: bash -l {0}
         run: |
           micromamba activate pathml 
+          pip install "numpy==1.23.5" --force-reinstall
           pip install "coverage<7.3" --force-reinstall
-          pip install --force-reinstall numba
+          pip install "numba>=0.59,<0.63" --force-reinstall
           python -m coverage --version
           python -m numba --version
-
 
       - name: Test other modules with pytest and generate coverage
         shell: bash -l {0}
