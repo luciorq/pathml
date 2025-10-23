@@ -61,16 +61,16 @@ jobs:
       - name: Run tests (other modules) with coverage
         shell: bash -l {0}
         run: |
-          export COVERAGE_FILE=/tmp/.coverage_others
+          mkdir -p /tmp/coverage_other
+          export COVERAGE_FILE=/tmp/coverage_other/.coverage_others
           pytest -m "not slow and not exclude" --tb=short
-          coverage xml -o /tmp/combined_coverage_other.xml
-          rm -f /tmp/.coverage_others
+          coverage xml -o /tmp/coverage_other/combined_coverage_other.xml
 
       - name: Upload coverage artifact (other modules)
         uses: actions/upload-artifact@v4
         with:
           name: coverage-other
-          path: /tmp/.coverage_others,/tmp/combined_coverage_other.xml
+          path: /tmp/coverage_other
 
   test-tilestitcher:
     runs-on: ubuntu-latest
@@ -125,16 +125,16 @@ jobs:
       - name: Run tile_stitcher tests with coverage
         shell: bash -l {0}
         run: |
-          export COVERAGE_FILE=/tmp/.coverage_tilestitcher
+          mkdir -p /tmp/coverage_tilestitcher
+          export COVERAGE_FILE=/tmp/coverage_tilestitcher/.coverage_tilestitcher
           pytest tests/preprocessing_tests/test_tilestitcher.py --tb=short
-          coverage xml -o /tmp/combined_coverage_tilestitcher.xml
-          rm -f /tmp/.coverage_tilestitcher
+          coverage xml -o /tmp/coverage_tilestitcher/combined_coverage_tilestitcher.xml
 
       - name: Upload coverage artifact (tile_stitcher)
         uses: actions/upload-artifact@v4
         with:
           name: coverage-tilestitcher
-          path: /tmp/.coverage_tilestitcher,/tmp/combined_coverage_tilestitcher.xml
+          path: /tmp/coverage_tilestitcher
 
   merge-coverage:
     runs-on: ubuntu-latest
@@ -147,15 +147,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-other
-          path: ./coverage
+          path: ./coverage_other
       - uses: actions/download-artifact@v4
         with:
           name: coverage-tilestitcher
-          path: ./coverage
+          path: ./coverage_tilestitcher
 
       - name: Merge coverage files
         run: |
-          coverage combine ./coverage/.coverage_others ./coverage/.coverage_tilestitcher
+          coverage combine ./coverage_other/.coverage_others ./coverage_tilestitcher/.coverage_tilestitcher
           coverage xml -o combined_coverage_final.xml
 
       - name: Upload merged coverage to Codecov
@@ -165,4 +165,5 @@ jobs:
           files: ./combined_coverage_final.xml
           fail_ci_if_error: true
           verbose: true
+
 
