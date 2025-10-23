@@ -110,7 +110,11 @@ jobs:
       - name: Fix coverage-numba incompatibility
         shell: bash -l {0}
         run: |
+          micromamba activate pathml 
           pip install "coverage<7.3" --force-reinstall
+          pip install --force-reinstall numba
+          python -m coverage --version
+          python -m numba --version
 
 
       - name: Test other modules with pytest and generate coverage
