@@ -63,7 +63,7 @@ jobs:
         run: |
           mkdir -p /tmp/coverage_other
           export COVERAGE_FILE=/tmp/coverage_other/.coverage_others
-          pytest -m "not slow and not exclude" --tb=short
+          coverage run -m pytest -m "not slow and not exclude" --tb=short
           coverage xml -o /tmp/coverage_other/combined_coverage_other.xml
 
       - name: Upload coverage artifact (other modules)
@@ -125,15 +125,16 @@ jobs:
       - name: Run tile_stitcher tests with coverage
         shell: bash -l {0}
         run: |
-          export COVERAGE_FILE=/tmp/.coverage_tilestitcher
+          mkdir -p /tmp/coverage_tilestitcher
+          export COVERAGE_FILE=/tmp/coverage_tilestitcher/.coverage_tilestitcher
           coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py --tb=short
-          coverage xml -o /tmp/combined_coverage_tilestitcher.xml
+          coverage xml -o /tmp/coverage_tilestitcher/combined_coverage_tilestitcher.xml
 
       - name: Upload coverage artifact (tile_stitcher)
         uses: actions/upload-artifact@v4
         with:
           name: coverage-tilestitcher
-          path: /tmp/.coverage_tilestitcher,/tmp/combined_coverage_tilestitcher.xml
+          path: /tmp/coverage_tilestitcher
 
   merge-coverage:
     runs-on: ubuntu-latest
@@ -164,5 +165,3 @@ jobs:
           files: ./combined_coverage_final.xml
           fail_ci_if_error: true
           verbose: true
-
-
