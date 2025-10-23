@@ -36,4 +36,3 @@ def test_urls(url):
             pytest.skip(f"URL {url} returned 403 Forbidden")
         else:
             raise
-
