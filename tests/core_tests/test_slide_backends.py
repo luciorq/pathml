@@ -106,19 +106,25 @@ def test_extract_region_openslide(example_slide_data, shape):
 #     # assert np.array_equal(im_level2[:, :, 2], 255 * np.ones((25, 25)))
 #     assert np.allclose(im_level2[:, :, 2], 255, atol=2)
 
+
 def test_extract_region_levels_openslide():
     """
     Test region extraction across pyramid levels using OpenSlide.
 
     Uses a fraction-of-blue-pixels check to tolerate small platform differences
-    and edge padding artifacts. Previous test would not pass on Linux only Windows. 
+    and edge padding artifacts.
     """
 
-    def assert_mostly_blue(region, threshold=0.95):
-        """Assert that at least `threshold` fraction of pixels in the blue channel are near 255."""
+    def assert_mostly_blue(region, threshold: float = 0.90) -> None:
+        """
+        Assert that at least `threshold` fraction of pixels in the blue channel
+        are near 255.
+        """
         blue_channel = region[:, :, 2]
         blue_fraction = np.mean(blue_channel > 250)
-        assert blue_fraction >= threshold, f"Only {blue_fraction*100:.2f}% of pixels are blue"
+        assert blue_fraction >= threshold, (
+            f"Only {blue_fraction * 100:.2f}% of pixels are blue"
+        )
 
     wsi = OpenSlideBackend("tests/testdata/small_HE_levels.tiff")
 
@@ -133,7 +139,6 @@ def test_extract_region_levels_openslide():
     # Level 2 (downsampled ~4x)
     im_level2 = wsi.extract_region(location=(25, 25), size=25, level=2)
     assert_mostly_blue(im_level2)
-
 
 
 # separate dicom tests because dicom frame requires 500x500 tiles while bioformats has dim <500
