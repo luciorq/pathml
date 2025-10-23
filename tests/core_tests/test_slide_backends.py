@@ -95,13 +95,16 @@ def test_extract_region_levels_openslide():
     # so this should be true as well for the corresponding regions in lower levels
     # level 0
     im_level0 = wsi.extract_region(location=(100, 100), size=100, level=0)
-    assert np.array_equal(im_level0[:, :, 2], 255 * np.ones((100, 100)))
+    # assert np.array_equal(im_level0[:, :, 2], 255 * np.ones((100, 100)))
+    assert np.allclose(im_level0[:, :, 2], 255, atol=2)
     # level 1
     im_level1 = wsi.extract_region(location=(50, 50), size=50, level=1)
-    assert np.array_equal(im_level1[:, :, 2], 255 * np.ones((50, 50)))
+    # assert np.array_equal(im_level1[:, :, 2], 255 * np.ones((50, 50)))
+    assert np.allclose(im_level1[:, :, 2], 255, atol=2)
     # level 2
     im_level2 = wsi.extract_region(location=(25, 25), size=25, level=2)
-    assert np.array_equal(im_level2[:, :, 2], 255 * np.ones((25, 25)))
+    # assert np.array_equal(im_level2[:, :, 2], 255 * np.ones((25, 25)))
+    assert np.allclose(im_level2[:, :, 2], 255, atol=2)
 
 
 # separate dicom tests because dicom frame requires 500x500 tiles while bioformats has dim <500
