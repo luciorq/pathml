@@ -1,211 +1,168 @@
-name: Tests linux
+name: Tests (Linux)
 
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - dev
-      - master
+    branches: [dev, master]
   push:
-    branches:
-      - dev
-      - master
+    branches: [dev, master]
 
 jobs:
-  build-linux:
+  test-other:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 5
       matrix:
         python-version: ["3.9", "3.10"]
-    timeout-minutes: 60 # add a timeout
+    timeout-minutes: 60
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Display Python version
-      run: python -c "import sys; print(sys.version)"
-    - name: Install dependencies
-      shell: bash -l {0}
-      run: |
-        sudo apt-get update
-        sudo apt-get install openslide-tools
-        sudo apt-get install pandoc
-    - name: Setup Micromamba
-      uses: mamba-org/setup-micromamba@v1
-      with:
-        micromamba-version: '1.5.6-0'
-        environment-name: pathml
-        environment-file: requirements/environment_test.yml
-        init-shell: >-
-          bash
-        create-args: >-
-          python=${{ matrix.python-version }}
-    - name: Debugging
-      run: |
-        echo "Printing the environment.yml file..."
-        cat requirements/environment_test.yml
-        echo "Checking the status of micro mamba..."
-        micromamba config
-        echo "Checking the available disk space..."
-        df -h
-        
-    # - name: Install dependencies with micromamba
-    #   shell: bash -l {0}
-    #   run: micromamba env update --file requirements/environment_test.yml --name pathml
-    
-    - name: Micromamba info
-      shell: bash -l {0}
-      run: |
-        micromamba info
-        micromamba config
-        micromamba list
-    
-    - name: Set default Temurin JDK 17
-      run: |
-        sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
-        java -version
-        
-    - name: Install PathML
-      shell: bash -l {0}      
-      run: pip install -e .
-    
-    - name: Install torchvision
-      shell: bash -l {0}
-      run: pip install torchvision==0.14.1
+      - uses: actions/checkout@v4
 
-    - name: disk usage
-      shell: bash -l {0}
-      run: |
-        sudo df -h
-        sudo du -h
-        
-    # - name: free disk space
-    #   run: |
-    #     sudo swapoff -a
-    #     sudo rm -f /swapfile
-    #     sudo apt clean
-    #     docker rmi $(docker image ls -aq)
-    #     sudo df -h
-    #     sudo du -h
+      - name: System cleanup
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h
 
-    - name: free disk space
-      run: |
-        sudo swapoff -a
-        sudo rm -f /swapfile
-        sudo apt-get clean
-        if [ "$(docker image ls -aq)" ]; then
-          docker rmi $(docker image ls -aq)
-        else
-          echo "No Docker images to remove."
-         fi
-         sudo df -h
-         sudo du -h
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    # - name: Check Coverage Command
-    #   run: |
-    #     which coverage
-    #     coverage --version
-        
-    # - name: Test with pytest for tile_stitcher
-    #   run: |
-    #     java -version
-    #     python -m pytest tests/preprocessing_tests/test_tilestitcher.py
-        
-    # - name: Test with pytest and generate coverage report
-    #   shell: bash -l {0}
-    #   run: |
-    #     coverage run -m pytest -m "not slow and not exclude"
-    #     coverage xml
-    # - name: Upload coverage to Codecov
-    #   uses: codecov/codecov-action@v2
-    #   with:
-    #     token: ${{ secrets.CODECOV_TOKEN }}
-    #     env_vars: OS,PYTHON
-    #     fail_ci_if_error: true
-    #     files: ./coverage.xml
-    #     name: codecov-umbrella
-    #     verbose: true
+      - name: Setup Micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: '1.5.6-0'
+          environment-name: pathml
+          environment-file: requirements/environment_test.yml
+          create-args: python=${{ matrix.python-version }}
+          init-shell: bash
 
-    - name: Fix coverage-numba incompatibility
-      shell: bash -l {0}
-      run: |
-        micromamba activate pathml
-        pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
-        python -m coverage --version
-        python -c "import numba; print('Numba version:', numba.__version__)"
+      - name: Clean micromamba cache
+        shell: bash -l {0}
+        run: micromamba clean --all --yes
 
-    - name: Run tests and coverage (optimized)
-      shell: bash -l {0}
-      run: |
-        echo "Starting test coverage in /tmp to avoid disk issues..."
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y openslide-tools pandoc
 
-        # Set temp coverage files
-        export COVERAGE_FILE=/tmp/.coverage_others
-        coverage run -m pytest -m "not slow and not exclude"
-    
-        export COVERAGE_FILE=/tmp/.coverage_tilestitcher
-        coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
+      - name: Set default JDK 17
+        run: |
+          sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
+          java -version
 
-        echo "Combining coverage files..."
-        coverage combine /tmp/.coverage_others /tmp/.coverage_tilestitcher
+      - name: Install Python packages
+        shell: bash -l {0}
+        run: |
+          pip install -e .
+          pip install torchvision==0.14.1
+          pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
 
-        # Generate XML report in project folder
-        coverage xml -o combined_coverage.xml
+      - name: Run tests (other modules) with coverage
+        shell: bash -l {0}
+        run: |
+          export COVERAGE_FILE=/tmp/.coverage_others
+          pytest -m "not slow and not exclude" --tb=short
+          coverage xml -o /tmp/combined_coverage_other.xml
+          rm -f /tmp/.coverage_others
 
-        # Cleanup temp coverage files to free space
-        rm -f /tmp/.coverage_others /tmp/.coverage_tilestitcher
+      - name: Upload coverage artifact (other modules)
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-other
+          path: /tmp/.coverage_others,/tmp/combined_coverage_other.xml
 
-        echo "Done! Combined coverage XML at ./combined_coverage.xml"
+  test-tilestitcher:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
+    timeout-minutes: 60
 
+    steps:
+      - uses: actions/checkout@v4
 
-    # - name: Test other modules with pytest and generate coverage
-    #   shell: bash -l {0}
-    #   run: |
-    #     COVERAGE_FILE=.coverage_others coverage run -m pytest -m "not slow and not exclude"
+      - name: System cleanup
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h
 
-    # - name: Test tile_stitcher with pytest and generate coverage
-    #   shell: bash -l {0}
-    #   run: |
-    #     COVERAGE_FILE=.coverage_tilestitcher coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
-    
-    - name: List Files in Directory
-      shell: bash -l {0}
-      run: |
-        ls -la
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    # - name: Combine Coverage Data
-    #   shell: bash -l {0}
-    #   run: |
-    #     coverage combine .coverage_tilestitcher .coverage_others
+      - name: Setup Micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: '1.5.6-0'
+          environment-name: pathml
+          environment-file: requirements/environment_test.yml
+          create-args: python=${{ matrix.python-version }}
+          init-shell: bash
 
-    # - name: Generate Combined Coverage Report
-    #   shell: bash -l {0}
-    #   run: |
-    #     coverage xml -o combined_coverage.xml
-    
-    # - name: Combine coverage data
-    #   shell: bash -l {0}
-    #   run: |
-    #     coverage combine coverage_tilestitcher.xml coverage_others.xml
-    #     coverage xml -o coverage_combined.xml
+      - name: Clean micromamba cache
+        shell: bash -l {0}
+        run: micromamba clean --all --yes
 
-    - name: Upload combined coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        env_vars: OS,PYTHON
-        fail_ci_if_error: true
-        files: ./combined_coverage.xml
-        name: codecov-umbrella
-        verbose: true
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y openslide-tools pandoc
 
-    - name: Compile docs
-      shell: bash -l {0}
-      run: |
-        cd docs
-        pip install -r readthedocs-requirements.txt
-        make html
+      - name: Set default JDK 17
+        run: |
+          sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
+          java -version
+
+      - name: Install Python packages
+        shell: bash -l {0}
+        run: |
+          pip install -e .
+          pip install torchvision==0.14.1
+          pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
+
+      - name: Run tile_stitcher tests with coverage
+        shell: bash -l {0}
+        run: |
+          export COVERAGE_FILE=/tmp/.coverage_tilestitcher
+          pytest tests/preprocessing_tests/test_tilestitcher.py --tb=short
+          coverage xml -o /tmp/combined_coverage_tilestitcher.xml
+          rm -f /tmp/.coverage_tilestitcher
+
+      - name: Upload coverage artifact (tile_stitcher)
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-tilestitcher
+          path: /tmp/.coverage_tilestitcher,/tmp/combined_coverage_tilestitcher.xml
+
+  merge-coverage:
+    runs-on: ubuntu-latest
+    needs: [test-other, test-tilestitcher]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-other
+          path: ./coverage
+      - uses: actions/download-artifact@v3
+        with:
+          name: coverage-tilestitcher
+          path: ./coverage
+
+      - name: Merge coverage files
+        run: |
+          coverage combine ./coverage/.coverage_others ./coverage/.coverage_tilestitcher
+          coverage xml -o combined_coverage_final.xml
+
+      - name: Upload merged coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./combined_coverage_final.xml
+          fail_ci_if_error: true
+          verbose: true
+
