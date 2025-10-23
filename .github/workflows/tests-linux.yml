@@ -58,13 +58,15 @@ jobs:
           pip install torchvision==0.14.1
           pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
 
+
       - name: Run tests (other modules) with coverage
         shell: bash -l {0}
         run: |
           mkdir -p /tmp/coverage_other
           export COVERAGE_FILE=/tmp/coverage_other/.coverage_others
-          pytest -m "not slow and not exclude" --tb=short
+          coverage run --source=pathml -m pytest -m "not slow and not exclude" --tb=short
           coverage xml -o /tmp/coverage_other/combined_coverage_other.xml
+
 
       - name: Upload coverage artifact (other modules)
         uses: actions/upload-artifact@v4

@@ -18,7 +18,9 @@ def bioformats_backend():
 
 
 def bioformats_backend_qptiff():
-    """Bioformats behaves differently for images that have shape XYZCT, so we need to test that separately"""
+    """Bioformats behaves differently for images that have shape XYZCT,
+    so we need to test that separately.
+    """
     return BioFormatsBackend("tests/testdata/small_vectra.qptiff")
 
 
@@ -26,9 +28,7 @@ def dicom_backend():
     return DICOMBackend("tests/testdata/small_dicom.dcm")
 
 
-# test each method for each backend
-
-
+# Test each method for each backend
 @pytest.mark.parametrize(
     "backend",
     [
@@ -46,7 +46,9 @@ def test_extract_region(backend, location, size, level):
     assert region.dtype == np.uint8
 
 
-@pytest.mark.parametrize("backend", [bioformats_backend(), bioformats_backend_qptiff()])
+@pytest.mark.parametrize(
+    "backend", [bioformats_backend(), bioformats_backend_qptiff()]
+)
 @pytest.mark.parametrize("normalize", [True, False])
 def test_extract_region_bioformats_no_normalize(backend, normalize):
     reg = backend.extract_region(location=(0, 0), size=10, normalize=normalize)
@@ -59,11 +61,10 @@ def test_extract_region_bioformats_no_normalize(backend, normalize):
 @pytest.mark.parametrize("shape", [500, (500, 250)])
 def test_extract_region_openslide(example_slide_data, shape):
     """
-    make sure that the coordinates for openslide backend are in correct order.
-    Issue #181 caused by discrepancy between openslide (x, y) coord system and the rest of pathml which uses (i, j)
+    Make sure that the coordinates for OpenSlide backend are in correct order.
+    Issue #181 caused by discrepancy between OpenSlide (x, y) coord system and
+    the rest of pathml which uses (i, j)
     """
-    # get the array for the image
-    # note that calling np.array() on the PIL image automatically takes care of flipping it to (i, j) coords!!
     raw_im_array = np.array(
         example_slide_data.slide.slide.read_region(
             location=(0, 0),
@@ -72,39 +73,15 @@ def test_extract_region_openslide(example_slide_data, shape):
         )
     )
     raw_im_array = raw_im_array[:, :, 0:3]
+
     if isinstance(shape, int):
         shape = (shape, shape)
     h, w = shape
+
     for tile in example_slide_data.generate_tiles(shape=shape):
         i, j = tile.coords
         assert np.array_equal(tile.image, raw_im_array[i : i + h, j : j + w, :])
         assert tile.image.shape[0:2] == shape
-
-
-# def test_extract_region_levels_openslide():
-#     # testing bug when reading regions from levels above 0
-#     # see: https://github.com/Dana-Farber-AIOS/pathml/issues/240
-#     # this is caused because openslide.read_region expects coords in the level 0 reference coord system
-#     # but in pathml, we use coords relative to each level
-#     # so to convert, we need to stretch coords by the downsample factor to convert to level 0 system
-#     #   before passing them to the openslide API
-#     # this multilevel testing image is taken from the openslide test suite:
-#     # https://github.com/openslide/openslide-python/blob/main/tests/boxes.tiff
-#     wsi = OpenSlideBackend("tests/testdata/small_HE_levels.tiff")
-#     # at level zero, the tile at (100, 100) of size 100px is entirely blue, i.e. pixel values [0, 0, 255]
-#     # so this should be true as well for the corresponding regions in lower levels
-#     # level 0
-#     im_level0 = wsi.extract_region(location=(100, 100), size=100, level=0)
-#     # assert np.array_equal(im_level0[:, :, 2], 255 * np.ones((100, 100)))
-#     assert np.allclose(im_level0[:, :, 2], 255, atol=2)
-#     # level 1
-#     im_level1 = wsi.extract_region(location=(50, 50), size=50, level=1)
-#     # assert np.array_equal(im_level1[:, :, 2], 255 * np.ones((50, 50)))
-#     assert np.allclose(im_level1[:, :, 2], 255, atol=2)
-#     # level 2
-#     im_level2 = wsi.extract_region(location=(25, 25), size=25, level=2)
-#     # assert np.array_equal(im_level2[:, :, 2], 255 * np.ones((25, 25)))
-#     assert np.allclose(im_level2[:, :, 2], 255, atol=2)
 
 
 def test_extract_region_levels_openslide():
@@ -141,7 +118,7 @@ def test_extract_region_levels_openslide():
     assert_mostly_blue(im_level2)
 
 
-# separate dicom tests because dicom frame requires 500x500 tiles while bioformats has dim <500
+# Separate DICOM tests because DICOM frame requires 500x500 tiles
 @pytest.mark.parametrize("backend", [dicom_backend()])
 @pytest.mark.parametrize("location", [(0, 0), (500, 500)])
 @pytest.mark.parametrize("size", [500, (500, 500)])
@@ -173,7 +150,7 @@ def test_tile_generator(backend, shape, tile_shape, pad):
         assert len(tiles) == np.prod(
             [1 + (shape[i] // tile_shape[i]) for i in range(len(shape))]
         )
-    assert all([isinstance(tile, Tile) for tile in tiles])
+    assert all(isinstance(tile, Tile) for tile in tiles)
 
 
 @pytest.mark.parametrize("backend", [BioFormatsBackend, OpenSlideBackend])
@@ -204,10 +181,12 @@ def test_tile_generator_with_level(backend, shape, tile_shape, pad, level):
         assert len(tiles) == np.prod(
             [1 + (shape[i] // tile_shape[i]) for i in range(len(shape))]
         )
-    assert all([isinstance(tile, Tile) for tile in tiles])
+    assert all(isinstance(tile, Tile) for tile in tiles)
 
 
-@pytest.mark.parametrize("backend", [bioformats_backend(), bioformats_backend_qptiff()])
+@pytest.mark.parametrize(
+    "backend", [bioformats_backend(), bioformats_backend_qptiff()]
+)
 @pytest.mark.parametrize("normalize", [True, False])
 def test_generate_tiles_bioformats_no_normalize(backend, normalize):
     gen = backend.generate_tiles(shape=10, normalize=normalize)
@@ -251,22 +230,22 @@ def test_get_thumbnail(backend):
     ],
 )
 def test_repr(backend):
-    # make sure there are no errors during repr or str
+    # Make sure there are no errors during repr or str
     repr(backend)
     print(backend)
 
 
 def test_dicom_coords_index_conversion():
     backend = dicom_backend()
-    # shape of the dicom image: (2638, 3236)
-    # frame size: (500, 500)
+    # Shape of the DICOM image: (2638, 3236)
+    # Frame size: (500, 500)
     check = {0: (0, 0), 1: (0, 500), 14: (1000, 0), 41: (2500, 3000)}
     for index, coords in check.items():
         assert backend._index_to_coords(index) == coords
         assert backend._coords_to_index(coords) == index
 
 
-# this test takes a long time, so skip by running 'python -m pytest -m "not slow"'
+# This test takes a long time, so skip by running 'python -m pytest -m "not slow"'
 @pytest.mark.slow
 def test_bioformats_vm_handling(vectra_slide):
     vectra_slide.generate_tiles(shape=10)
