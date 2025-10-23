@@ -63,13 +63,13 @@ jobs:
         run: |
           mkdir -p /tmp/coverage_other
           export COVERAGE_FILE=/tmp/coverage_other/.coverage_others
-          coverage run -m pytest -m "not slow and not exclude" --tb=short
+          pytest -m "not slow and not exclude" --tb=short
           coverage xml -o /tmp/coverage_other/combined_coverage_other.xml
 
       - name: Upload coverage artifact (other modules)
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-other
+          name: coverage-other-${{ matrix.python-version }}
           path: /tmp/coverage_other
 
   test-tilestitcher:
@@ -133,7 +133,7 @@ jobs:
       - name: Upload coverage artifact (tile_stitcher)
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-tilestitcher
+          name: coverage-tilestitcher-${{ matrix.python-version }}
           path: /tmp/coverage_tilestitcher
 
   merge-coverage:
@@ -143,19 +143,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download coverage artifacts
+      - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
         with:
-          name: coverage-other
-          path: ./coverage_other
-      - uses: actions/download-artifact@v4
-        with:
-          name: coverage-tilestitcher
-          path: ./coverage_tilestitcher
+          pattern: coverage-*
+          merge-multiple: true
+          path: ./coverage_all
 
       - name: Merge coverage files
         run: |
-          coverage combine ./coverage_other/.coverage_others ./coverage_tilestitcher/.coverage_tilestitcher
+          echo "Found coverage files:"
+          find ./coverage_all -name ".coverage_*"
+          coverage combine $(find ./coverage_all -name ".coverage_*")
           coverage xml -o combined_coverage_final.xml
 
       - name: Upload merged coverage to Codecov
