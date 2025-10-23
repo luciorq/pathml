@@ -67,7 +67,7 @@ jobs:
           rm -f /tmp/.coverage_others
 
       - name: Upload coverage artifact (other modules)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-other
           path: /tmp/.coverage_others,/tmp/combined_coverage_other.xml
@@ -131,7 +131,7 @@ jobs:
           rm -f /tmp/.coverage_tilestitcher
 
       - name: Upload coverage artifact (tile_stitcher)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-tilestitcher
           path: /tmp/.coverage_tilestitcher,/tmp/combined_coverage_tilestitcher.xml
@@ -144,11 +144,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download coverage artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-other
           path: ./coverage
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: coverage-tilestitcher
           path: ./coverage
