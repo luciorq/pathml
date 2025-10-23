@@ -138,30 +138,54 @@ jobs:
         python -m coverage --version
         python -c "import numba; print('Numba version:', numba.__version__)"
 
-    - name: Test other modules with pytest and generate coverage
+    - name: Run tests and coverage (optimized)
       shell: bash -l {0}
       run: |
-        COVERAGE_FILE=.coverage_others coverage run -m pytest -m "not slow and not exclude"
+        echo "Starting test coverage in /tmp to avoid disk issues..."
 
-    - name: Test tile_stitcher with pytest and generate coverage
-      shell: bash -l {0}
-      run: |
-        COVERAGE_FILE=.coverage_tilestitcher coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
+        # Set temp coverage files
+        export COVERAGE_FILE=/tmp/.coverage_others
+        coverage run -m pytest -m "not slow and not exclude"
+    
+        export COVERAGE_FILE=/tmp/.coverage_tilestitcher
+        coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
+
+        echo "Combining coverage files..."
+        coverage combine /tmp/.coverage_others /tmp/.coverage_tilestitcher
+
+        # Generate XML report in project folder
+        coverage xml -o combined_coverage.xml
+
+        # Cleanup temp coverage files to free space
+        rm -f /tmp/.coverage_others /tmp/.coverage_tilestitcher
+
+        echo "Done! Combined coverage XML at ./combined_coverage.xml"
+
+
+    # - name: Test other modules with pytest and generate coverage
+    #   shell: bash -l {0}
+    #   run: |
+    #     COVERAGE_FILE=.coverage_others coverage run -m pytest -m "not slow and not exclude"
+
+    # - name: Test tile_stitcher with pytest and generate coverage
+    #   shell: bash -l {0}
+    #   run: |
+    #     COVERAGE_FILE=.coverage_tilestitcher coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
     
     - name: List Files in Directory
       shell: bash -l {0}
       run: |
         ls -la
 
-    - name: Combine Coverage Data
-      shell: bash -l {0}
-      run: |
-        coverage combine .coverage_tilestitcher .coverage_others
+    # - name: Combine Coverage Data
+    #   shell: bash -l {0}
+    #   run: |
+    #     coverage combine .coverage_tilestitcher .coverage_others
 
-    - name: Generate Combined Coverage Report
-      shell: bash -l {0}
-      run: |
-        coverage xml -o combined_coverage.xml
+    # - name: Generate Combined Coverage Report
+    #   shell: bash -l {0}
+    #   run: |
+    #     coverage xml -o combined_coverage.xml
     
     # - name: Combine coverage data
     #   shell: bash -l {0}
