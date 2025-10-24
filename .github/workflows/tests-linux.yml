@@ -15,7 +15,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 2  # reduce parallelism to avoid memory spikes
+      max-parallel: 2  # reduce parallelism to avoid OOM
       matrix:
         python-version: ["3.9", "3.10"]
     timeout-minutes: 60
@@ -35,7 +35,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq openslide-tools pandoc
-          
+
       - name: Setup Micromamba
         uses: mamba-org/setup-micromamba@v1
         with:
@@ -60,14 +60,21 @@ jobs:
           sudo swapoff -a || true
           sudo rm -f /swapfile || true
           sudo apt-get clean
-          docker rmi $(docker image ls -aq) || true
+          if docker image ls -q >/dev/null 2>&1; then
+            docker rmi -f $(docker image ls -aq) || true
+          else
+            echo "No Docker images found to remove."
+          fi
           df -h
-          du -h
+          du -sh $HOME /usr /opt || true
 
       - name: Run pytest with coverage (split to reduce memory usage)
         run: |
-          micromamba run -n pathml COVERAGE_FILE=.coverage_others coverage run -m pytest -m "not slow and not exclude"
-          micromamba run -n pathml COVERAGE_FILE=.coverage_tilestitcher coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
+          export COVERAGE_FILE=.coverage_others
+          micromamba run -n pathml coverage run -m pytest -m "not slow and not exclude"
+
+          export COVERAGE_FILE=.coverage_tilestitcher
+          micromamba run -n pathml coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
 
       - name: Combine coverage reports
         run: |
@@ -84,7 +91,23 @@ jobs:
           name: codecov-umbrella
           verbose: true
 
-      - name: Compile docs
+  build-docs:
+    runs-on: ubuntu-latest
+    needs: build-linux  # only build docs after tests pass
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Micromamba
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          micromamba-version: '1.5.6-0'
+          environment-name: pathml
+          environment-file: requirements/environment_test.yml
+          init-shell: bash
+
+      - name: Build documentation
         run: |
           cd docs
           micromamba run -n pathml pip install -r readthedocs-requirements.txt
