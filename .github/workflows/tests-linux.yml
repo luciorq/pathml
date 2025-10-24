@@ -148,7 +148,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.10  # or 3.9, just one version to run merge
+          python-version: "3.9"  # or 3.9, just one version to run merge
 
       - name: Install coverage
         run: pip install "coverage<7.3"
