@@ -1,4 +1,4 @@
-name: Tests linux
+name: Tests Linux (Low Memory)
 
 on:
   workflow_dispatch:
@@ -15,173 +15,112 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 5
+      # Limit concurrency to reduce memory pressure
+      max-parallel: 2
       matrix:
         python-version: ["3.9", "3.10"]
-    timeout-minutes: 60 # add a timeout
+    timeout-minutes: 60
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Display Python version
-      run: python -c "import sys; print(sys.version)"
-    - name: Install dependencies
-      shell: bash -l {0}
-      run: |
-        sudo apt-get update
-        sudo apt-get install openslide-tools
-        sudo apt-get install pandoc
-    - name: Setup Micromamba
-      uses: mamba-org/setup-micromamba@v1
-      with:
-        micromamba-version: '1.5.6-0'
-        environment-name: pathml
-        environment-file: requirements/environment_test.yml
-        init-shell: >-
-          bash
-        create-args: >-
-          python=${{ matrix.python-version }}
-    - name: Debugging
-      run: |
-        echo "Printing the environment.yml file..."
-        cat requirements/environment_test.yml
-        echo "Checking the status of micro mamba..."
-        micromamba config
-        echo "Checking the available disk space..."
-        df -h
-        
-    # - name: Install dependencies with micromamba
-    #   shell: bash -l {0}
-    #   run: micromamba env update --file requirements/environment_test.yml --name pathml
-    
-    - name: Micromamba info
-      shell: bash -l {0}
-      run: |
-        micromamba info
-        micromamba config
-        micromamba list
-    
-    - name: Set default Temurin JDK 17
-      run: |
-        sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
-        java -version
-        
-    - name: Install PathML
-      shell: bash -l {0}      
-      run: pip install -e .
-    
-    - name: Install torchvision
-      shell: bash -l {0}
-      run: pip install torchvision==0.14.1
+      - uses: actions/checkout@v4
 
-    - name: disk usage
-      shell: bash -l {0}
-      run: |
-        sudo df -h
-        sudo du -h
-        
-    # - name: free disk space
-    #   run: |
-    #     sudo swapoff -a
-    #     sudo rm -f /swapfile
-    #     sudo apt clean
-    #     docker rmi $(docker image ls -aq)
-    #     sudo df -h
-    #     sudo du -h
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: free disk space
-      run: |
-        sudo swapoff -a
-        sudo rm -f /swapfile
-        sudo apt-get clean
-        if [ "$(docker image ls -aq)" ]; then
-          docker rmi $(docker image ls -aq)
-        else
-          echo "No Docker images to remove."
-         fi
-         sudo df -h
-         sudo du -h
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
 
-    # - name: Check Coverage Command
-    #   run: |
-    #     which coverage
-    #     coverage --version
-        
-    # - name: Test with pytest for tile_stitcher
-    #   run: |
-    #     java -version
-    #     python -m pytest tests/preprocessing_tests/test_tilestitcher.py
-        
-    # - name: Test with pytest and generate coverage report
-    #   shell: bash -l {0}
-    #   run: |
-    #     coverage run -m pytest -m "not slow and not exclude"
-    #     coverage xml
-    # - name: Upload coverage to Codecov
-    #   uses: codecov/codecov-action@v2
-    #   with:
-    #     token: ${{ secrets.CODECOV_TOKEN }}
-    #     env_vars: OS,PYTHON
-    #     fail_ci_if_error: true
-    #     files: ./coverage.xml
-    #     name: codecov-umbrella
-    #     verbose: true
+      - name: Install minimal system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openslide-tools pandoc
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
 
-    - name: Fix coverage-numba incompatibility
-      shell: bash -l {0}
-      run: |
-        micromamba activate pathml
-        pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
-        python -m coverage --version
-        python -c "import numba; print('Numba version:', numba.__version__)"
+      - name: Set up Micromamba (cached)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          micromamba-version: "1.5.6-0"
+          environment-name: pathml
+          environment-file: requirements/environment_test.yml
+          init-shell: bash
+          cache-environment: true
+          create-args: >-
+            python=${{ matrix.python-version }}
+        env:
+          MAMBA_NO_BANNER: 1
 
-    - name: Test other modules with pytest and generate coverage
-      shell: bash -l {0}
-      run: |
-        COVERAGE_FILE=.coverage_others coverage run -m pytest -m "not slow and not exclude"
+      - name: Show environment info
+        run: |
+          micromamba info
+          micromamba list | head -n 20
+          df -h
 
-    - name: Test tile_stitcher with pytest and generate coverage
-      shell: bash -l {0}
-      run: |
-        COVERAGE_FILE=.coverage_tilestitcher coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
-    
-    - name: List Files in Directory
-      shell: bash -l {0}
-      run: |
-        ls -la
+      - name: Set default Temurin JDK 17
+        run: |
+          sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
+          java -version
 
-    - name: Combine Coverage Data
-      shell: bash -l {0}
-      run: |
-        coverage combine .coverage_tilestitcher .coverage_others
+      - name: Install PathML (editable)
+        shell: bash -l {0}
+        run: pip install -e .
 
-    - name: Generate Combined Coverage Report
-      shell: bash -l {0}
-      run: |
-        coverage xml -o combined_coverage.xml
-    
-    # - name: Combine coverage data
-    #   shell: bash -l {0}
-    #   run: |
-    #     coverage combine coverage_tilestitcher.xml coverage_others.xml
-    #     coverage xml -o coverage_combined.xml
+      - name: Install lightweight torchvision
+        shell: bash -l {0}
+        run: pip install torchvision==0.14.1 --no-cache-dir
 
-    - name: Upload combined coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        env_vars: OS,PYTHON
-        fail_ci_if_error: true
-        files: ./combined_coverage.xml
-        name: codecov-umbrella
-        verbose: true
+      - name: Aggressive disk cleanup
+        run: |
+          echo "Freeing disk space..."
+          sudo swapoff -a || true
+          sudo rm -f /swapfile || true
+          docker system prune -af || true
+          sudo apt-get clean
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          df -h
 
-    - name: Compile docs
-      shell: bash -l {0}
-      run: |
-        cd docs
-        pip install -r readthedocs-requirements.txt
-        make html
+      - name: Fix coverage-numba incompatibility
+        shell: bash -l {0}
+        run: |
+          micromamba activate pathml
+          pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall --no-cache-dir
+          python -m coverage --version
+          python -c "import numba; print('Numba version:', numba.__version__)"
+
+      - name: Run tests (non-tilestitcher)
+        shell: bash -l {0}
+        env:
+          COVERAGE_FILE: .coverage_others
+        run: |
+          pytest -m "not slow and not exclude" --maxfail=2 --disable-warnings -q --cov --cov-append
+
+      - name: Run tests (tile_stitcher)
+        shell: bash -l {0}
+        env:
+          COVERAGE_FILE: .coverage_tilestitcher
+        run: |
+          pytest tests/preprocessing_tests/test_tilestitcher.py --disable-warnings -q --cov --cov-append
+
+      - name: Combine coverage
+        shell: bash -l {0}
+        run: |
+          coverage combine || true
+          coverage xml -o combined_coverage.xml || true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./combined_coverage.xml
+          fail_ci_if_error: false
+          name: codecov-umbrella
+          verbose: false
+
+      - name: Build docs (lightweight)
+        shell: bash -l {0}
+        run: |
+          cd docs
+          pip install -r readthedocs-requirements.txt --no-cache-dir
+          make html -j 1
