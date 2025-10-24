@@ -1,171 +1,91 @@
-name: Tests (Linux)
+name: Tests linux
 
 on:
   workflow_dispatch:
   pull_request:
-    branches: [dev, master]
+    branches:
+      - dev
+      - master
   push:
-    branches: [dev, master]
+    branches:
+      - dev
+      - master
 
 jobs:
-  test-other:
+  build-linux:
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 2  # reduce parallelism to avoid memory spikes
       matrix:
         python-version: ["3.9", "3.10"]
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: System cleanup
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
-          sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/*
-          df -h
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openslide-tools pandoc
+          
       - name: Setup Micromamba
         uses: mamba-org/setup-micromamba@v1
         with:
           micromamba-version: '1.5.6-0'
           environment-name: pathml
           environment-file: requirements/environment_test.yml
-          create-args: python=${{ matrix.python-version }}
           init-shell: bash
+          create-args: python=${{ matrix.python-version }}
 
-      - name: Clean micromamba cache
-        shell: bash -l {0}
-        run: micromamba clean --all --yes
+      - name: Install PathML & PyTorch dependencies
+        run: |
+          micromamba run -n pathml pip install -e .
+          micromamba run -n pathml pip install torchvision==0.14.1
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y openslide-tools pandoc
-
-      - name: Set default JDK 17
+      - name: Set default Temurin JDK 17
         run: |
           sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
           java -version
 
-      - name: Install Python packages
-        shell: bash -l {0}
+      - name: Clean up disk and memory
         run: |
-          pip install -e .
-          pip install torchvision==0.14.1
-          pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
-
-
-      - name: Run tests (other modules) with coverage
-        shell: bash -l {0}
-        run: |
-          mkdir -p /tmp/coverage_other
-          export COVERAGE_FILE=/tmp/coverage_other/.coverage_others
-          coverage run --source=pathml -m pytest -m "not slow and not exclude" --tb=short
-          coverage xml -o /tmp/coverage_other/combined_coverage_other.xml
-
-
-      - name: Upload coverage artifact (other modules)
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-other-${{ matrix.python-version }}
-          path: /tmp/coverage_other
-
-  test-tilestitcher:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10"]
-    timeout-minutes: 60
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: System cleanup
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost
+          sudo swapoff -a || true
+          sudo rm -f /swapfile || true
           sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/*
+          docker rmi $(docker image ls -aq) || true
           df -h
+          du -h
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Setup Micromamba
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          micromamba-version: '1.5.6-0'
-          environment-name: pathml
-          environment-file: requirements/environment_test.yml
-          create-args: python=${{ matrix.python-version }}
-          init-shell: bash
-
-      - name: Clean micromamba cache
-        shell: bash -l {0}
-        run: micromamba clean --all --yes
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y openslide-tools pandoc
-
-      - name: Set default JDK 17
+      - name: Run pytest with coverage (split to reduce memory usage)
         run: |
-          sudo update-java-alternatives --set temurin-17-jdk-amd64 || true
-          java -version
+          micromamba run -n pathml COVERAGE_FILE=.coverage_others coverage run -m pytest -m "not slow and not exclude"
+          micromamba run -n pathml COVERAGE_FILE=.coverage_tilestitcher coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
 
-      - name: Install Python packages
-        shell: bash -l {0}
+      - name: Combine coverage reports
         run: |
-          pip install -e .
-          pip install torchvision==0.14.1
-          pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
+          micromamba run -n pathml coverage combine .coverage_tilestitcher .coverage_others
+          micromamba run -n pathml coverage xml -o combined_coverage.xml
 
-      - name: Run tile_stitcher tests with coverage
-        shell: bash -l {0}
-        run: |
-          mkdir -p /tmp/coverage_tilestitcher
-          export COVERAGE_FILE=/tmp/coverage_tilestitcher/.coverage_tilestitcher
-          coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py --tb=short
-          coverage xml -o /tmp/coverage_tilestitcher/combined_coverage_tilestitcher.xml
-
-      - name: Upload coverage artifact (tile_stitcher)
-        uses: actions/upload-artifact@v4
+      - name: Upload combined coverage to Codecov
+        uses: codecov/codecov-action@v2
         with:
-          name: coverage-tilestitcher-${{ matrix.python-version }}
-          path: /tmp/coverage_tilestitcher
+          token: ${{ secrets.CODECOV_TOKEN }}
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          files: ./combined_coverage.xml
+          name: codecov-umbrella
+          verbose: true
 
-  merge-coverage:
-    runs-on: ubuntu-latest
-    needs: [test-other, test-tilestitcher]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"  # or 3.9, just one version to run merge
-
-      - name: Install coverage
-        run: pip install "coverage<7.3"
-
-      - name: Download all coverage artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-*
-          path: ./coverage_all
-
-      - name: List downloaded coverage files
+      - name: Compile docs
         run: |
-          echo "Listing all downloaded coverage files:"
-          find ./coverage_all -name ".coverage_*"
-
-      - name: Merge coverage files safely
-        run: |
-          find ./coverage_all -name ".coverage_*" -print0 | xargs -0 coverage combine
-          coverage xml -o combined_coverage_final.xml
-
+          cd docs
+          micromamba run -n pathml pip install -r readthedocs-requirements.txt
+          micromamba run -n pathml make html
