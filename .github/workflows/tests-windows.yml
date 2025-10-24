@@ -107,6 +107,14 @@ jobs:
         run: echo "OPENSLIDE_PATH=D:\a\pathml\pathml\openslide-binaries\openslide-win64-20231011\bin" >> $GITHUB_ENV
         shell: pwsh
 
+      - name: Fix coverage-numba incompatibility
+        shell: bash -l {0}
+        run: |
+          micromamba activate pathml 
+          pip install "numpy==1.23.5" "coverage<7.3" "numba==0.59.1" --force-reinstall
+          python -m coverage --version
+          python -c "import numba; print('Numba version:', numba.__version__)"
+
       - name: Test other modules with pytest and generate coverage
         shell: bash -l {0}
         run: |
