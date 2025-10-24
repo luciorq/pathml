@@ -89,38 +89,39 @@ jobs:
           python -m coverage --version
           python -c "import numba; print('Numba version:', numba.__version__)"
 
-      - name: Run tests (non-tilestitcher)
-        shell: bash -l {0}
-        env:
-          COVERAGE_FILE: .coverage_others
-        run: |
-          pytest -m "not slow and not exclude" --maxfail=2 --disable-warnings -q --cov --cov-append
-
-      - name: Run tests (tile_stitcher)
-        shell: bash -l {0}
-        env:
-          COVERAGE_FILE: .coverage_tilestitcher
-        run: |
-          pytest tests/preprocessing_tests/test_tilestitcher.py --disable-warnings -q --cov --cov-append
-
-      - name: Combine coverage
+      - name: Test other modules with pytest and generate coverage
         shell: bash -l {0}
         run: |
-          coverage combine || true
-          coverage xml -o combined_coverage.xml || true
+          COVERAGE_FILE=.coverage_others coverage run -m pytest -m "not slow and not exclude"
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Test tile_stitcher with pytest and generate coverage
+        shell: bash -l {0}
+        run: |
+          COVERAGE_FILE=.coverage_tilestitcher coverage run -m pytest tests/preprocessing_tests/test_tilestitcher.py
+
+      - name: Combine Coverage Data
+        shell: bash -l {0}
+        run: |
+          coverage combine .coverage_tilestitcher .coverage_others
+
+      - name: Generate Combined Coverage Report
+        shell: bash -l {0}
+        run: |
+          coverage xml -o combined_coverage.xml
+
+      - name: Upload combined coverage to Codecov
+        uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
           files: ./combined_coverage.xml
-          fail_ci_if_error: false
           name: codecov-umbrella
-          verbose: false
+          verbose: true
 
-      - name: Build docs (lightweight)
+      - name: Compile docs
         shell: bash -l {0}
         run: |
           cd docs
-          pip install -r readthedocs-requirements.txt --no-cache-dir
-          make html -j 1
+          pip install -r readthedocs-requirements.txt
+          make html
